@@ -1,0 +1,150 @@
+import React, { useState, useEffect } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+const MortgageEquityCalculator = () => {
+  const [initialAge, setInitialAge] = useState(25);
+  const [retirementAge, setRetirementAge] = useState(65);
+  const [initialValue, setInitialValue] = useState(170000);
+  const [annualGrowthRate, setAnnualGrowthRate] = useState(5.92);
+  const [baseMonthlyPayment, setBaseMonthlyPayment] = useState(850);
+  const [mortgageRate, setMortgageRate] = useState(4.25);
+  const [extraPaymentPercent, setExtraPaymentPercent] = useState(0);
+  const [data, setData] = useState([]);
+  const [finalPropertyValue, setFinalPropertyValue] = useState(0);
+
+  useEffect(() => {
+    const newData = [];
+    let currentValue = initialValue;
+    let currentMortgage = initialValue;
+    const totalMonthlyPayment = baseMonthlyPayment * (1 + extraPaymentPercent / 100);
+
+    for (let age = initialAge; age <= retirementAge; age++) {
+      const yearlyPayment = totalMonthlyPayment * 12;
+      const mortgageInterest = currentMortgage * (mortgageRate / 100);
+      currentMortgage = Math.max(0, currentMortgage + mortgageInterest - yearlyPayment);
+      currentValue *= (1 + annualGrowthRate / 100);
+
+      newData.push({
+        age,
+        mortgage: Math.round(currentMortgage),
+        equity: Math.round(currentValue - currentMortgage)
+      });
+    }
+    setData(newData);
+    setFinalPropertyValue(Math.round(currentValue));
+  }, [initialAge, retirementAge, initialValue, annualGrowthRate, baseMonthlyPayment, mortgageRate, extraPaymentPercent]);
+
+  const estimatedAnnualRent = finalPropertyValue * 0.04;
+  const estimatedMonthlyRent = estimatedAnnualRent / 12;
+
+  return (
+    <Card className="w-full max-w-4xl mx-auto">
+      <CardHeader>
+        <h2 className="text-2xl font-bold">高级按揭和净资产计算器</h2>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <Label htmlFor="initialAge">初始年龄</Label>
+            <Input
+              id="initialAge"
+              type="number"
+              value={initialAge}
+              onChange={(e) => setInitialAge(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label htmlFor="retirementAge">退休年龄</Label>
+            <Input
+              id="retirementAge"
+              type="number"
+              value={retirementAge}
+              onChange={(e) => setRetirementAge(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label htmlFor="initialValue">初始房产价值/按揭金额</Label>
+            <Input
+              id="initialValue"
+              type="number"
+              value={initialValue}
+              onChange={(e) => setInitialValue(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label htmlFor="annualGrowthRate">年增长率 (%)</Label>
+            <Input
+              id="annualGrowthRate"
+              type="number"
+              step="0.01"
+              value={annualGrowthRate}
+              onChange={(e) => setAnnualGrowthRate(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label htmlFor="baseMonthlyPayment">基础月供</Label>
+            <Input
+              id="baseMonthlyPayment"
+              type="number"
+              value={baseMonthlyPayment}
+              onChange={(e) => setBaseMonthlyPayment(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label htmlFor="mortgageRate">按揭利率 (%)</Label>
+            <Input
+              id="mortgageRate"
+              type="number"
+              step="0.01"
+              value={mortgageRate}
+              onChange={(e) => setMortgageRate(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label htmlFor="extraPaymentPercent">额外还款百分比 (%)</Label>
+            <Input
+              id="extraPaymentPercent"
+              type="number"
+              step="1"
+              value={extraPaymentPercent}
+              onChange={(e) => setExtraPaymentPercent(Number(e.target.value))}
+            />
+          </div>
+        </div>
+        <div className="mb-4">
+          <div className="text-lg font-semibold">
+            退休年龄时的房产总值：{new Intl.NumberFormat('zh-CN').format(finalPropertyValue)} 元
+          </div>
+          <div className="text-md">
+            预估年租金（4%）：{new Intl.NumberFormat('zh-CN').format(Math.round(estimatedAnnualRent))} 元
+          </div>
+          <div className="text-md">
+            预估月租金：{new Intl.NumberFormat('zh-CN').format(Math.round(estimatedMonthlyRent))} 元
+          </div>
+          <div className="text-md mt-2">
+            实际月供：{new Intl.NumberFormat('zh-CN').format(Math.round(baseMonthlyPayment * (1 + extraPaymentPercent / 100)))} 元
+          </div>
+        </div>
+        <ResponsiveContainer width="100%" height={400}>
+          <LineChart
+            data={data}
+            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="age" label={{ value: '年龄', position: 'insideBottomRight', offset: -10 }} />
+            <YAxis label={{ value: '金额 (元)', angle: -90, position: 'insideLeft' }} />
+            <Tooltip formatter={(value) => new Intl.NumberFormat('zh-CN').format(value)} />
+            <Legend />
+            <Line type="monotone" dataKey="mortgage" name="欠银行的钱" stroke="#82ca9d" />
+            <Line type="monotone" dataKey="equity" name="净资产" stroke="#ffc658" />
+          </LineChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default MortgageEquityCalculator;

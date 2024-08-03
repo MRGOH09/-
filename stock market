@@ -1,0 +1,214 @@
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+const StockValueCalculator = () => {
+  const [monthlyInvestment, setMonthlyInvestment] = useState(1000);
+  const [currentAge, setCurrentAge] = useState(25);
+  const [retirementAge, setRetirementAge] = useState(60);
+  const [growthRate, setGrowthRate] = useState(5);
+  const [dividendRate, setDividendRate] = useState(5);
+  const [currentPortfolioValue, setCurrentPortfolioValue] = useState(50000);
+  const [calculationResults, setCalculationResults] = useState([]);
+  const [retirementPortfolioValue, setRetirementPortfolioValue] = useState(0);
+  const [visibleLines, setVisibleLines] = useState({
+    yearlyInvestment: true,
+    yearlyGrowth: true,
+    yearlyDividend: true,
+    portfolioValue: true
+  });
+
+  useEffect(() => {
+    calculateStockValue();
+  }, [monthlyInvestment, currentAge, retirementAge, growthRate, dividendRate, currentPortfolioValue]);
+
+  const calculateStockValue = () => {
+    let results = [];
+    let portfolioValue = currentPortfolioValue;
+    const yearlyInvestment = monthlyInvestment * 12;
+    const years = retirementAge - currentAge;
+
+    for (let year = 0; year <= years; year++) {
+      const age = currentAge + year;
+      const yearlyGrowth = portfolioValue * (growthRate / 100);
+      const yearlyDividend = portfolioValue * (dividendRate / 100);
+      
+      portfolioValue += yearlyInvestment + yearlyGrowth + yearlyDividend;
+
+      results.push({
+        age: age,
+        yearlyInvestment: Math.round(yearlyInvestment),
+        yearlyGrowth: Math.round(yearlyGrowth),
+        yearlyDividend: Math.round(yearlyDividend),
+        portfolioValue: Math.round(portfolioValue)
+      });
+    }
+
+    setCalculationResults(results);
+    setRetirementPortfolioValue(Math.round(portfolioValue));
+  };
+
+  const toggleLine = (lineName) => {
+    setVisibleLines(prev => ({ ...prev, [lineName]: !prev[lineName] }));
+  };
+
+  return (
+    <Card className="w-full max-w-6xl mx-auto">
+      <CardHeader>
+        <CardTitle>股票价值增长趋势图</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <style jsx>{`
+          @keyframes emphasize {
+            0% { color: #ff4136; }
+            25% { color: #ff851b; }
+            50% { color: #2ecc40; }
+            75% { color: #0074d9; }
+            100% { color: #b10dc9; }
+          }
+          .emphasize {
+            animation: emphasize 5s infinite;
+            font-weight: bold;
+          }
+        `}</style>
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          <div>
+            <Label htmlFor="monthlyInvestment">每月投资额 (RM)</Label>
+            <Input
+              id="monthlyInvestment"
+              type="number"
+              value={monthlyInvestment}
+              onChange={(e) => setMonthlyInvestment(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label htmlFor="currentAge">当前年龄</Label>
+            <Input
+              id="currentAge"
+              type="number"
+              value={currentAge}
+              onChange={(e) => setCurrentAge(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label htmlFor="retirementAge">退休年龄</Label>
+            <Input
+              id="retirementAge"
+              type="number"
+              value={retirementAge}
+              onChange={(e) => setRetirementAge(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label htmlFor="growthRate">年增长率 (%)</Label>
+            <Input
+              id="growthRate"
+              type="number"
+              value={growthRate}
+              onChange={(e) => setGrowthRate(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label htmlFor="dividendRate">年股息率 (%)</Label>
+            <Input
+              id="dividendRate"
+              type="number"
+              value={dividendRate}
+              onChange={(e) => setDividendRate(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label htmlFor="currentPortfolioValue">当前投资组合价值 (RM)</Label>
+            <Input
+              id="currentPortfolioValue"
+              type="number"
+              value={currentPortfolioValue}
+              onChange={(e) => setCurrentPortfolioValue(Number(e.target.value))}
+            />
+          </div>
+        </div>
+        
+        <div className="mt-4 text-center text-xl">
+          退休时的投资组合价值: <span className="emphasize">RM {retirementPortfolioValue.toLocaleString()}</span>
+        </div>
+        
+        <div className="mt-4 flex space-x-4">
+          <label className="flex items-center">
+            <Checkbox
+              checked={visibleLines.yearlyInvestment}
+              onCheckedChange={() => toggleLine('yearlyInvestment')}
+            />
+            <span className="ml-2">年投资</span>
+          </label>
+          <label className="flex items-center">
+            <Checkbox
+              checked={visibleLines.yearlyGrowth}
+              onCheckedChange={() => toggleLine('yearlyGrowth')}
+            />
+            <span className="ml-2">年增长</span>
+          </label>
+          <label className="flex items-center">
+            <Checkbox
+              checked={visibleLines.yearlyDividend}
+              onCheckedChange={() => toggleLine('yearlyDividend')}
+            />
+            <span className="ml-2">年股息</span>
+          </label>
+          <label className="flex items-center">
+            <Checkbox
+              checked={visibleLines.portfolioValue}
+              onCheckedChange={() => toggleLine('portfolioValue')}
+            />
+            <span className="ml-2">投资组合价值</span>
+          </label>
+        </div>
+        
+        <div className="mt-4" style={{height: '400px'}}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={calculationResults}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="age" label={{ value: '年龄', position: 'bottom', offset: 0 }} />
+              <YAxis label={{ value: '金额 (RM)', angle: -90, position: 'insideLeft' }} />
+              <Tooltip formatter={(value) => `RM ${value.toLocaleString()}`} />
+              <Legend />
+              {visibleLines.yearlyInvestment && <Line type="monotone" dataKey="yearlyInvestment" name="年投资" stroke="#82ca9d" />}
+              {visibleLines.yearlyGrowth && <Line type="monotone" dataKey="yearlyGrowth" name="年增长" stroke="#8884d8" />}
+              {visibleLines.yearlyDividend && <Line type="monotone" dataKey="yearlyDividend" name="年股息" stroke="#ffc658" />}
+              {visibleLines.portfolioValue && <Line type="monotone" dataKey="portfolioValue" name="投资组合价值" stroke="#ff7300" />}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="mt-8 overflow-x-auto">
+          <table className="min-w-full bg-white border border-gray-300">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="px-4 py-2 border">年龄</th>
+                <th className="px-4 py-2 border">年投资</th>
+                <th className="px-4 py-2 border">年增长</th>
+                <th className="px-4 py-2 border">年股息</th>
+                <th className="px-4 py-2 border">投资组合价值</th>
+              </tr>
+            </thead>
+            <tbody>
+              {calculationResults.map((result, index) => (
+                <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                  <td className="px-4 py-2 border">{result.age}</td>
+                  <td className="px-4 py-2 border">RM {result.yearlyInvestment.toLocaleString()}</td>
+                  <td className="px-4 py-2 border">RM {result.yearlyGrowth.toLocaleString()}</td>
+                  <td className="px-4 py-2 border">RM {result.yearlyDividend.toLocaleString()}</td>
+                  <td className="px-4 py-2 border">RM {result.portfolioValue.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default StockValueCalculator;
